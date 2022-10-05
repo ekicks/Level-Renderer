@@ -70,7 +70,7 @@ void parseFile() {
 	std::ifstream file;
 	DirectX::XMFLOAT4X4 objMatrix;
 	float objVect[4];
-	std::vector< DirectX::XMMATRIX> matrixVect;
+	std::vector< DirectX::XMFLOAT4X4> matrixVect;
 	std::string valueString;
 	std::string lastCharacter;
 	std::string character;
@@ -121,6 +121,7 @@ void parseFile() {
 						if (count2 == 4) {
 							count2 = 0;
 						}
+						matrixVect.push_back(objMatrix);
 					}
 					valueString = "";
 				}
