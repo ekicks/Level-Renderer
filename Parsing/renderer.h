@@ -4,30 +4,8 @@
 #include <DirectXMath.h>
 #pragma comment(lib, "d3dcompiler.lib")
 // Simple Vertex Shader
-const char* vertexShaderSource = R"(
-// an ultra simple hlsl vertex shader
-cbuffer ConstantBuffer
-{
-	matrix matrixOne;
-	matrix matrixTwo;
-    matrix matrixThree;
-};
-float4 main(float4 inputVertex : POSITION) : SV_POSITION
-{
-	float4 worldPos = mul(matrixOne, inputVertex);
-    float4 viewPos = mul(matrixTwo, worldPos);
-    float4 perspective = mul(matrixThree, viewPos);
-	return perspective;
-}
-)";
 // Simple Pixel Shader
-const char* pixelShaderSource = R"(
-// an ultra simple hlsl pixel shader
-float4 main() : SV_TARGET 
-{	
-	return float4(0.25f,0.0f,1.0f,0); 
-}
-)";
+
 struct Vertex
 {
 	float x;
@@ -42,6 +20,22 @@ struct ConstantBuffer
 	DirectX::XMMATRIX matrixTwo;
 	DirectX::XMMATRIX matrixThree;
 };
+
+
+std::string ShaderAsString(const char* shaderFilePath) {
+	std::string output;
+	unsigned int stringLength = 0;
+	GW::SYSTEM::GFile file; file.Create();
+	file.GetFileSize(shaderFilePath, stringLength);
+	if (stringLength && +file.OpenBinaryRead(shaderFilePath)) {
+		output.resize(stringLength);
+		file.Read(&output[0], stringLength);
+	}
+	else
+		std::cout << "ERROR: Shader Source File \"" << shaderFilePath << "\" Not Found!" << std::endl;
+	return output;
+}
+
 
 using namespace std::chrono;
 // Creation, Rendering & Cleanup
@@ -114,8 +108,14 @@ public:
 #if _DEBUG
 		compilerFlags |= D3DCOMPILE_DEBUG;
 #endif
+
+
+		std::string VS = ShaderAsString("../VertexShader.hlsl");
+		std::string PS = ShaderAsString("../PixelShader.hlsl");
+
+
 		Microsoft::WRL::ComPtr<ID3DBlob> vsBlob, errors;
-		if (SUCCEEDED(D3DCompile(vertexShaderSource, strlen(vertexShaderSource),
+		if (SUCCEEDED(D3DCompile(VS.c_str(), strlen(VS.c_str()),
 			nullptr, nullptr, nullptr, "main", "vs_4_0", compilerFlags, 0, 
 			vsBlob.GetAddressOf(), errors.GetAddressOf())))
 		{
@@ -126,7 +126,7 @@ public:
 			std::cout << (char*)errors->GetBufferPointer() << std::endl;
 		// Create Pixel Shader
 		Microsoft::WRL::ComPtr<ID3DBlob> psBlob; errors.Reset();
-		if (SUCCEEDED(D3DCompile(pixelShaderSource, strlen(pixelShaderSource),
+		if (SUCCEEDED(D3DCompile(PS.c_str(), strlen(PS.c_str()),
 			nullptr, nullptr, nullptr, "main", "ps_4_0", compilerFlags, 0, 
 			psBlob.GetAddressOf(), errors.GetAddressOf())))
 		{
