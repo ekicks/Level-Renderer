@@ -160,8 +160,6 @@ public:
 		m = DirectX::XMMatrixIdentity();
 		m = DirectX::XMMatrixMultiply(m, DirectX::XMMatrixRotationX(1.5708f));
 		m = DirectX::XMMatrixMultiply(m, DirectX::XMMatrixTranslation(0.0f, 0.5f, 0.0f));
-
-
 		float wKey, aKey, sKey, dKey, space, shift;
 		float mouseX, mouseY;
 		input.GetState(G_KEY_W, wKey);
