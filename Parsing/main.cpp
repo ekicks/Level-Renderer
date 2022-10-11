@@ -94,10 +94,17 @@ void parseFile() {
 
 		if (std::strcmp(output.c_str(), "MESH") == 0 || std::strcmp(output.c_str(), "LIGHT") == 0 || std::strcmp(output.c_str(), "CAMERA") == 0) {
 			std::cout << output << std::endl;
-			std::getline(file, h2b, '\t');
+
+			std::getline(file, h2b, '\n');
 			std::cout << h2b << std::endl;
+			size_t found = h2b.find_last_of('.',h2b.size());
+			 if( found != std::string::npos){
+				h2b.resize(h2b.length() - found);
+			 }
+			h2b.append(".h2b");
 			H2B::Parser parseh2b;
 			parseh2b.Parse(h2b.c_str());
+
 			std::getline(file, matrix, '(');
 			std::cout << matrix << "(";
 			std::getline(file, matrix, '>');
@@ -105,7 +112,7 @@ void parseFile() {
 			for (int i = 0; i < matrix.length(); i++)
 			{
 				character = matrix[i];
-				if ((character[0] >= 48 && character[0] <= 57 || character[0] == 46 || character[0] == 47)) {
+				if ((character[0] >= 48 && character[0] <= 57 || character[0] == 46 || character[0] == 45)) {
 					valueString.append(character);
 				}
 				if (matrix[i] == ',' || matrix[i] == ')') {
@@ -118,7 +125,7 @@ void parseFile() {
 						objMatrix.m[count2][0] = objVect[0];
 						objMatrix.m[count2][1] = objVect[1];
 						objMatrix.m[count2][2] = objVect[2];
-						objMatrix.m[count2][0] = objVect[3];
+						objMatrix.m[count2][3] = objVect[3];
 						count2++;
 						if (count2 == 4) {
 							count2 = 0;
@@ -131,5 +138,6 @@ void parseFile() {
 		}
 		
 	}
+	file.close();
 	
 }
