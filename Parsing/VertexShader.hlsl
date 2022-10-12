@@ -1,13 +1,52 @@
-cbuffer ConstantBuffer 
+struct OBJ_ATTRIBUTES
 {
-    matrix matrixOne;
-    matrix matrixTwo;
-    matrix matrixThree;
+    float3 Kd; // diffuse reflectivity
+    float d; // dissolve (transparency) 
+    float3 Ks; // specular reflectivity
+    float Ns; // specular exponent
+    float3 Ka; // ambient reflectivity
+    float sharpness; // local reflection map sharpness
+    float3 Tf; // transmission filter
+    float Ni; // optical density (index of refraction)
+    float3 Ke; // emissive reflectivity
+    unsigned int illum; // illumination model
 };
-float4 main(float4 inputVertex : POSITION) : SV_POSITION
+
+cbuffer ConstWorld : register (b0)
 {
-    float4 worldPos = mul(matrixOne, inputVertex);
-    float4 viewPos = mul(matrixTwo, worldPos);
-    float4 perspective = mul(matrixThree, viewPos);
-    return perspective;
+    float4x4 world[256];
+    float meshId;
+};
+cbuffer ConstBuff : register(b1)
+{
+    matrix view;
+    matrix projection;
+};
+
+struct vert
+{
+    float3 pos : POSITION;
+    float3 uvw : TEXTCOORD;
+    float3 nrm : COLOR;
+};
+struct pixel
+{
+    float4 pos : SV_POSITION;
+    float4 nrm : COLOR;
+    float4 wPos : WORLD;
+};
+
+pixel main(vert inputVertex)
+{
+    pixel pixelOutput = (pixel) 0;
+    for (int i = 0; 1 < 256; i++)
+    {
+        pixelOutput.nrm = mul(world[i], float4(inputVertex.nrm, 0));
+        pixelOutput.pos = mul(view, float4(inputVertex.pos, 1));
+        pixelOutput.wPos = pixelOutput.pos;
+        pixelOutput.pos = mul(view, pixelOutput.pos);
+        pixelOutput.pos = mul(projection, pixelOutput.pos);
+        
+        return pixelOutput;
+    }
 }

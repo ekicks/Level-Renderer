@@ -99,11 +99,13 @@ void parseFile() {
 			std::cout << h2b << std::endl;
 			size_t found = h2b.find_last_of('.',h2b.size());
 			 if( found != std::string::npos){
-				h2b.resize(h2b.length() - found);
+				h2b.resize(h2b.length()-(h2b.length() - found));
 			 }
+			h2b = "../Assets/" + h2b;
+			bool val;
 			h2b.append(".h2b");
 			H2B::Parser parseh2b;
-			parseh2b.Parse(h2b.c_str());
+			val = parseh2b.Parse(h2b.c_str());
 
 			std::getline(file, matrix, '(');
 			std::cout << matrix << "(";

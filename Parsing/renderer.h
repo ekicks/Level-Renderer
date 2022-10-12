@@ -22,6 +22,13 @@ struct ConstantBuffer
 };
 
 
+//struct ConstantBuffer
+//{
+//	DirectX::XMMATRIX view;
+//	DirectX::XMMATRIX projection;
+//};
+
+
 std::string ShaderAsString(const char* shaderFilePath) {
 	std::string output;
 	unsigned int stringLength = 0;
@@ -54,7 +61,7 @@ class Renderer
 	GW::INPUT::GInput input;
 	DirectX::XMMATRIX viewMatrix;
 	high_resolution_clock::time_point startTime = high_resolution_clock::now();
-	
+
 public:
 	Renderer(GW::SYSTEM::GWindow _win, GW::GRAPHICS::GDirectX11Surface _d3d)
 	{
@@ -82,8 +89,8 @@ public:
 		for (int i = 0; i < 104;)
 		{
 			if (i >= 52) {
-				verts[i] = {(xValue + (float)(value2 / 25.0f)), -0.5, 0, 1 };
-				verts[i + 1] = {(xValue + (float)(value2 / 25.0f)), 0.5, 0, 1 };
+				verts[i] = { (xValue + (float)(value2 / 25.0f)), -0.5, 0, 1 };
+				verts[i + 1] = { (xValue + (float)(value2 / 25.0f)), 0.5, 0, 1 };
 				i += 2;
 				value2++;
 			}
@@ -97,7 +104,7 @@ public:
 
 		CD3D11_BUFFER_DESC cDesc(sizeof(ConstantBuffer), D3D11_BIND_CONSTANT_BUFFER);
 		creator->CreateBuffer(&cDesc, nullptr, constantBuffer.GetAddressOf());
-		
+
 		D3D11_SUBRESOURCE_DATA bData = { verts, 0, 0 };
 		CD3D11_BUFFER_DESC bDesc(sizeof(verts), D3D11_BIND_VERTEX_BUFFER);
 		creator->CreateBuffer(&bDesc, &bData, vertexBuffer.GetAddressOf());
@@ -116,7 +123,7 @@ public:
 
 		Microsoft::WRL::ComPtr<ID3DBlob> vsBlob, errors;
 		if (SUCCEEDED(D3DCompile(VS.c_str(), strlen(VS.c_str()),
-			nullptr, nullptr, nullptr, "main", "vs_4_0", compilerFlags, 0, 
+			nullptr, nullptr, nullptr, "main", "vs_4_0", compilerFlags, 0,
 			vsBlob.GetAddressOf(), errors.GetAddressOf())))
 		{
 			creator->CreateVertexShader(vsBlob->GetBufferPointer(),
@@ -127,7 +134,7 @@ public:
 		// Create Pixel Shader
 		Microsoft::WRL::ComPtr<ID3DBlob> psBlob; errors.Reset();
 		if (SUCCEEDED(D3DCompile(PS.c_str(), strlen(PS.c_str()),
-			nullptr, nullptr, nullptr, "main", "ps_4_0", compilerFlags, 0, 
+			nullptr, nullptr, nullptr, "main", "ps_4_0", compilerFlags, 0,
 			psBlob.GetAddressOf(), errors.GetAddressOf())))
 		{
 			creator->CreatePixelShader(psBlob->GetBufferPointer(),
@@ -137,13 +144,13 @@ public:
 			std::cout << (char*)errors->GetBufferPointer() << std::endl;
 		// Create Input Layout
 		D3D11_INPUT_ELEMENT_DESC format[] = {
-			{ 
-				"POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 
-				D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 
+			{
+				"POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0,
+				D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0
 			}
 		};
-		creator->CreateInputLayout(format, ARRAYSIZE(format), 
-			vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), 
+		creator->CreateInputLayout(format, ARRAYSIZE(format),
+			vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(),
 			vertexFormat.GetAddressOf());
 		// free temporary handle
 		creator->Release();
@@ -156,7 +163,7 @@ public:
 		DirectX::XMMATRIX m4;
 		DirectX::XMMATRIX m5;
 		DirectX::XMMATRIX m6;
-	
+
 		m = DirectX::XMMatrixIdentity();
 		m = DirectX::XMMatrixMultiply(m, DirectX::XMMatrixRotationX(1.5708f));
 		m = DirectX::XMMatrixMultiply(m, DirectX::XMMatrixTranslation(0.0f, 0.5f, 0.0f));
@@ -189,7 +196,7 @@ public:
 			}
 			if (aKey > 0) {
 				viewMatrix = DirectX::XMMatrixInverse(nullptr, viewMatrix);
-				viewMatrix = DirectX::XMMatrixMultiply(DirectX::XMMatrixTranslation(-0.005f, 0, 0),viewMatrix);
+				viewMatrix = DirectX::XMMatrixMultiply(DirectX::XMMatrixTranslation(-0.005f, 0, 0), viewMatrix);
 				viewMatrix = DirectX::XMMatrixInverse(nullptr, viewMatrix);
 			}
 			if (sKey > 0) {
@@ -199,7 +206,7 @@ public:
 			}
 			if (dKey > 0) {
 				viewMatrix = DirectX::XMMatrixInverse(nullptr, viewMatrix);
-				viewMatrix = DirectX::XMMatrixMultiply( DirectX::XMMatrixTranslation(0.005f, 0, 0), viewMatrix);
+				viewMatrix = DirectX::XMMatrixMultiply(DirectX::XMMatrixTranslation(0.005f, 0, 0), viewMatrix);
 				viewMatrix = DirectX::XMMatrixInverse(nullptr, viewMatrix);
 			}
 			if (shift > 0) {
@@ -221,7 +228,7 @@ public:
 
 		DirectX::XMMATRIX perspectiveMatrix = DirectX::XMMatrixPerspectiveFovLH(1.13446f, aRatio, 0.1f, 100.0f);
 
-		ConstantBuffer cbuffer = { m, viewMatrix , perspectiveMatrix};
+		ConstantBuffer cbuffer = { m, viewMatrix , perspectiveMatrix };
 
 		m2 = DirectX::XMMatrixIdentity();
 		m2 = DirectX::XMMatrixMultiply(m2, DirectX::XMMatrixRotationX(-1.5708f));
@@ -254,7 +261,7 @@ public:
 		d3d.GetRenderTargetView((void**)&view);
 		d3d.GetDepthStencilView((void**)&depth);
 		// setup the pipeline
-		ID3D11RenderTargetView *const views[] = { view };
+		ID3D11RenderTargetView* const views[] = { view };
 		con->OMSetRenderTargets(ARRAYSIZE(views), views, depth);
 		const UINT strides[] = { sizeof(Vertex) };
 		const UINT offsets[] = { 0 };
@@ -285,21 +292,21 @@ public:
 
 		con->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_LINELIST);
 		con->Draw(104, 0);
-		
+
 		cbuffer.matrixOne = m4;
 		con->UpdateSubresource(constantBuffer.Get(), 0, nullptr, &cbuffer, 0, 0);
 		con->VSSetConstantBuffers(0, 1, constantBuffer.GetAddressOf());
 
 		con->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_LINELIST);
 		con->Draw(104, 0);
-		
+
 		cbuffer.matrixOne = m5;
 		con->UpdateSubresource(constantBuffer.Get(), 0, nullptr, &cbuffer, 0, 0);
 		con->VSSetConstantBuffers(0, 1, constantBuffer.GetAddressOf());
 
 		con->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_LINELIST);
 		con->Draw(104, 0);
-		
+
 		cbuffer.matrixOne = m6;
 		con->UpdateSubresource(constantBuffer.Get(), 0, nullptr, &cbuffer, 0, 0);
 		con->VSSetConstantBuffers(0, 1, constantBuffer.GetAddressOf());
@@ -317,4 +324,10 @@ public:
 	{
 		// ComPtr will auto release so nothing to do here 
 	}
+
+
+
+
 };
+
+
