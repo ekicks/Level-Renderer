@@ -1,7 +1,6 @@
 // minimalistic code to draw a single triangle, this is not part of the API.
 // required for compiling shaders on the fly, consider pre-compiling instead
-#include <d3dcompiler.h>
-#include <DirectXMath.h>
+#include "Level.h"
 #pragma comment(lib, "d3dcompiler.lib")
 // Simple Vertex Shader
 // Simple Pixel Shader
@@ -14,19 +13,17 @@ struct Vertex
 	float w;
 };
 
-struct ConstantBuffer
+struct ConstantWorldBuffer
 {
-	DirectX::XMMATRIX matrixOne;
-	DirectX::XMMATRIX matrixTwo;
-	DirectX::XMMATRIX matrixThree;
+	DirectX::XMFLOAT4X4 world;
+	int meshId;
 };
 
-
-//struct ConstantBuffer
-//{
-//	DirectX::XMMATRIX view;
-//	DirectX::XMMATRIX projection;
-//};
+struct ConstantBuffer
+{
+	DirectX::XMMATRIX view;
+	DirectX::XMMATRIX projection;
+};
 
 
 std::string ShaderAsString(const char* shaderFilePath) {
@@ -45,6 +42,7 @@ std::string ShaderAsString(const char* shaderFilePath) {
 
 
 using namespace std::chrono;
+void ParseFile(const char* filename, std::vector< DirectX::XMFLOAT4X4>& matrixVect, std::vector<Model>& modelsVec);
 // Creation, Rendering & Cleanup
 class Renderer
 {
@@ -52,8 +50,6 @@ class Renderer
 	GW::SYSTEM::GWindow win;
 	GW::GRAPHICS::GDirectX11Surface d3d;
 	// what we need at a minimum to draw a triangle
-	Microsoft::WRL::ComPtr<ID3D11Buffer>		vertexBuffer;
-	Microsoft::WRL::ComPtr<ID3D11Buffer>		constantBuffer;
 	Microsoft::WRL::ComPtr<ID3D11VertexShader>	vertexShader;
 	Microsoft::WRL::ComPtr<ID3D11PixelShader>	pixelShader;
 	Microsoft::WRL::ComPtr<ID3D11InputLayout>	vertexFormat;
@@ -62,14 +58,17 @@ class Renderer
 	DirectX::XMMATRIX viewMatrix;
 	high_resolution_clock::time_point startTime = high_resolution_clock::now();
 
+	std::vector<Model> modelVec;
+	std::vector< DirectX::XMFLOAT4X4> matrixVect;
+	const char* filename = "../GameLevel.txt";
 public:
+
 	Renderer(GW::SYSTEM::GWindow _win, GW::GRAPHICS::GDirectX11Surface _d3d)
 	{
 		win = _win;
 		d3d = _d3d;
 		ID3D11Device* creator;
 		d3d.GetDevice((void**)&creator);
-
 		input.Create(_win);
 
 		DirectX::FXMVECTOR eye{ 0.25f, -0.125f, -0.25f };
@@ -79,35 +78,15 @@ public:
 		viewMatrix = DirectX::XMMatrixLookAtLH(eye, focus, upDir);
 
 		// Create Vertex Buffer
-		Vertex verts[104] = {
-			 0
-		};
-		float yValue = -0.5;
-		float xValue = -0.5;
-		float value = 0;
-		float value2 = 0;
-		for (int i = 0; i < 104;)
+		
+		// -------------- Replace surrounded -------------- //
+		ParseFile(filename, matrixVect,modelVec);
+		for (int i = 0; i < modelVec.size(); i++)
 		{
-			if (i >= 52) {
-				verts[i] = { (xValue + (float)(value2 / 25.0f)), -0.5, 0, 1 };
-				verts[i + 1] = { (xValue + (float)(value2 / 25.0f)), 0.5, 0, 1 };
-				i += 2;
-				value2++;
-			}
-			else {
-				verts[i] = { -0.5,(yValue + (float)(value / 25.0f)),0,1 };
-				verts[i + 1] = { 0.5,(yValue + (float)(value / 25.0f)),0,1 };
-				i += 2;
-				value++;
-			}
+			modelVec[i].CreateBuffer(creator, d3d);
 		}
-
-		CD3D11_BUFFER_DESC cDesc(sizeof(ConstantBuffer), D3D11_BIND_CONSTANT_BUFFER);
-		creator->CreateBuffer(&cDesc, nullptr, constantBuffer.GetAddressOf());
-
-		D3D11_SUBRESOURCE_DATA bData = { verts, 0, 0 };
-		CD3D11_BUFFER_DESC bDesc(sizeof(verts), D3D11_BIND_VERTEX_BUFFER);
-		creator->CreateBuffer(&bDesc, &bData, vertexBuffer.GetAddressOf());
+		// -------------- Replace surrounded -------------- //
+		//Create Data
 
 
 		// Create Vertex Shader
@@ -115,7 +94,6 @@ public:
 #if _DEBUG
 		compilerFlags |= D3DCOMPILE_DEBUG;
 #endif
-
 
 		std::string VS = ShaderAsString("../VertexShader.hlsl");
 		std::string PS = ShaderAsString("../PixelShader.hlsl");
@@ -158,11 +136,6 @@ public:
 	void Render()
 	{
 		DirectX::XMMATRIX m;
-		DirectX::XMMATRIX m2;
-		DirectX::XMMATRIX m3;
-		DirectX::XMMATRIX m4;
-		DirectX::XMMATRIX m5;
-		DirectX::XMMATRIX m6;
 
 		m = DirectX::XMMatrixIdentity();
 		m = DirectX::XMMatrixMultiply(m, DirectX::XMMatrixRotationX(1.5708f));
@@ -228,29 +201,8 @@ public:
 
 		DirectX::XMMATRIX perspectiveMatrix = DirectX::XMMatrixPerspectiveFovLH(1.13446f, aRatio, 0.1f, 100.0f);
 
-		ConstantBuffer cbuffer = { m, viewMatrix , perspectiveMatrix };
-
-		m2 = DirectX::XMMatrixIdentity();
-		m2 = DirectX::XMMatrixMultiply(m2, DirectX::XMMatrixRotationX(-1.5708f));
-		m2 = DirectX::XMMatrixMultiply(m2, DirectX::XMMatrixTranslation(0.0f, -0.5f, 0.0f));
-
-		m3 = DirectX::XMMatrixIdentity();
-		m3 = DirectX::XMMatrixMultiply(m3, DirectX::XMMatrixRotationX(0));
-		m3 = DirectX::XMMatrixMultiply(m3, DirectX::XMMatrixTranslation(0.0f, 0, 0.5f));
-
-		m4 = DirectX::XMMatrixIdentity();
-		m4 = DirectX::XMMatrixMultiply(m4, DirectX::XMMatrixRotationX(3.14159f));
-		m4 = DirectX::XMMatrixMultiply(m4, DirectX::XMMatrixTranslation(0.0f, 0, -0.5f));
-
-		m5 = DirectX::XMMatrixIdentity();
-		m5 = DirectX::XMMatrixMultiply(m5, DirectX::XMMatrixRotationY(-1.5708f));
-		m5 = DirectX::XMMatrixMultiply(m5, DirectX::XMMatrixTranslation(-0.5f, 0, 0));
-
-		m6 = DirectX::XMMatrixIdentity();
-		m6 = DirectX::XMMatrixMultiply(m6, DirectX::XMMatrixRotationY(-1.5708f));
-		m6 = DirectX::XMMatrixMultiply(m6, DirectX::XMMatrixTranslation(0.5f, 0, 0));
-
-
+		ConstantBuffer cbuffer = { viewMatrix , perspectiveMatrix };
+		ConstantWorldBuffer cwbuffer = { matrixVect[5] };
 
 		// grab the context & render target
 		ID3D11DeviceContext* con;
@@ -260,23 +212,17 @@ public:
 		d3d.GetImmediateContext((void**)&con);
 		d3d.GetRenderTargetView((void**)&view);
 		d3d.GetDepthStencilView((void**)&depth);
-		// setup the pipeline
-		ID3D11RenderTargetView* const views[] = { view };
-		con->OMSetRenderTargets(ARRAYSIZE(views), views, depth);
-		const UINT strides[] = { sizeof(Vertex) };
-		const UINT offsets[] = { 0 };
-		ID3D11Buffer* const buffs[] = { vertexBuffer.Get() };
-		con->IASetVertexBuffers(0, ARRAYSIZE(buffs), buffs, strides, offsets);
-		con->VSSetShader(vertexShader.Get(), nullptr, 0);
-		con->PSSetShader(pixelShader.Get(), nullptr, 0);
-		con->IASetInputLayout(vertexFormat.Get());
-
-		con->UpdateSubresource(constantBuffer.Get(), 0, nullptr, &cbuffer, 0, 0);
-		con->VSSetConstantBuffers(0, 1, constantBuffer.GetAddressOf());
+		
+		modelVec[5].SetData(modelVec[5], d3d, con, view, depth);
+		con->UpdateSubresource(modelVec[5].constantBuffer.Get(), 0, nullptr, &cbuffer, 0, 0);
+		con->VSSetConstantBuffers(0,1,modelVec[5].constantBuffer.GetAddressOf());
+		con->PSSetConstantBuffers(0,1,modelVec[5].constantBuffer.GetAddressOf());
+		con->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		con->DrawIndexed(modelVec[5].parser.indexCount, 0, 1);
 
 
-		// now we can draw
-		con->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_LINELIST);
+		// -------------- Replace surrounded -------------- //
+		/*con->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_LINELIST);
 		con->Draw(104, 0);
 
 		cbuffer.matrixOne = m2;
@@ -312,7 +258,11 @@ public:
 		con->VSSetConstantBuffers(0, 1, constantBuffer.GetAddressOf());
 
 		con->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_LINELIST);
-		con->Draw(104, 0);
+		con->Draw(104, 0);*/
+		// -------------- Replace surrounded -------------- //
+
+		//DrawModel || Load Level
+
 
 
 		// release temp handles
@@ -326,8 +276,82 @@ public:
 	}
 
 
-
-
 };
 
+void ParseFile(const char* filename, std::vector< DirectX::XMFLOAT4X4>& matrixVect, std::vector<Model>& modelsVec) {
+
+	std::ifstream file;
+	DirectX::XMFLOAT4X4 objMatrix;	//matrix that holds values from each amtrix in the text file
+	float objVect[4];				//vector of collect row values from the matrix
+	std::string valueString;		//string of floats for each number in matrix
+	std::string character;			//each character in the matrix string 
+	float value;					//stored value of string after stof
+	int count = 0;					//vector counter
+	int count2 = 0;					//matrix counter
+
+	file.open(filename);
+	while (true) {
+		std::string output = "";
+		H2B::Parser parser;
+		std::string h2b = "";
+		std::string matrix = "";
+
+		if (file.eof() == true) {	//exits out the loop if end of file is met 
+			break;
+		}
+
+		std::getline(file, output, '\n');	//gets the type of object
+
+		if (std::strcmp(output.c_str(), "MESH") == 0 || std::strcmp(output.c_str(), "LIGHT") == 0 || std::strcmp(output.c_str(), "CAMERA") == 0) {
+
+			std::cout << output << std::endl; //prints the name of the object 
+
+			std::getline(file, h2b, '\n');
+			std::cout << h2b << std::endl;
+			size_t found = h2b.find_last_of('.', h2b.size());
+			if (found != std::string::npos) {
+				h2b.resize(h2b.length() - (h2b.length() - found));
+			}
+			h2b = "../Assets/" + h2b;
+			bool val;
+			h2b.append(".h2b");
+			Model models;
+			val = models.parser.Parse(h2b.c_str());
+			modelsVec.push_back(models);
+
+			std::getline(file, matrix, '(');
+			std::cout << matrix << "(";
+			std::getline(file, matrix, '>');
+			std::cout << matrix << ">" << std::endl;
+			for (int i = 0; i < matrix.length(); i++)
+			{
+				character = matrix[i];
+				if ((character[0] >= 48 && character[0] <= 57 || character[0] == 46 || character[0] == 45)) {
+					valueString.append(character);
+				}
+				if (matrix[i] == ',' || matrix[i] == ')') {
+
+					value = std::stof(valueString);
+					objVect[count] = value;
+					count++;
+					if (count == 4) {
+						count = 0;
+						objMatrix.m[count2][0] = objVect[0];
+						objMatrix.m[count2][1] = objVect[1];
+						objMatrix.m[count2][2] = objVect[2];
+						objMatrix.m[count2][3] = objVect[3];
+						count2++;
+						if (count2 == 4) {
+							count2 = 0;
+						}
+						matrixVect.push_back(objMatrix);
+					}
+					valueString = "";
+				}
+			}
+		}
+
+	}
+	file.close();
+}
 

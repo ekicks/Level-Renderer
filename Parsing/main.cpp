@@ -19,11 +19,9 @@ using namespace CORE;
 using namespace SYSTEM;
 using namespace GRAPHICS;
 // lets pop a window and use D3D11 to clear to a green screen
-void parseFile();
 
 int main()
 {
-	parseFile();
 	GWindow win;
 	GEventResponder msgs;
 	GDirectX11Surface d3d11;
@@ -66,80 +64,3 @@ int main()
 	return 0; // that's all folks
 }
 
-void parseFile() {
-	std::ifstream file;
-	DirectX::XMFLOAT4X4 objMatrix;
-	float objVect[4];
-	std::vector< DirectX::XMFLOAT4X4> matrixVect;
-	std::string valueString;
-	std::string lastCharacter;
-	std::string character;
-	float value;
-	int count =0;
-	int count2 =0;
-
-	file.open("../GameLevel.txt");
-	while (true) {
-		std::string output = "";
-		H2B::Parser parser;
-		std::string h2b = "";
-		std::string matrix = "";
-		
-
-		if (file.eof() == true) {
-			break;
-		}
-
-		std::getline(file, output, '\n');
-
-		if (std::strcmp(output.c_str(), "MESH") == 0 || std::strcmp(output.c_str(), "LIGHT") == 0 || std::strcmp(output.c_str(), "CAMERA") == 0) {
-			std::cout << output << std::endl;
-
-			std::getline(file, h2b, '\n');
-			std::cout << h2b << std::endl;
-			size_t found = h2b.find_last_of('.',h2b.size());
-			 if( found != std::string::npos){
-				h2b.resize(h2b.length()-(h2b.length() - found));
-			 }
-			h2b = "../Assets/" + h2b;
-			bool val;
-			h2b.append(".h2b");
-			H2B::Parser parseh2b;
-			val = parseh2b.Parse(h2b.c_str());
-
-			std::getline(file, matrix, '(');
-			std::cout << matrix << "(";
-			std::getline(file, matrix, '>');
-			std::cout << matrix << ">" << std::endl;
-			for (int i = 0; i < matrix.length(); i++)
-			{
-				character = matrix[i];
-				if ((character[0] >= 48 && character[0] <= 57 || character[0] == 46 || character[0] == 45)) {
-					valueString.append(character);
-				}
-				if (matrix[i] == ',' || matrix[i] == ')') {
-
-					value = std::stof(valueString);
-					objVect[count] = value;
-					count++;
-					if (count == 4) {
-						count = 0;
-						objMatrix.m[count2][0] = objVect[0];
-						objMatrix.m[count2][1] = objVect[1];
-						objMatrix.m[count2][2] = objVect[2];
-						objMatrix.m[count2][3] = objVect[3];
-						count2++;
-						if (count2 == 4) {
-							count2 = 0;
-						}
-						matrixVect.push_back(objMatrix);
-					}
-					valueString = "";
-				}
-			}
-		}
-		
-	}
-	file.close();
-	
-}

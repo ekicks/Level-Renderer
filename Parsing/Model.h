@@ -13,7 +13,8 @@ class Model
 public:
 	struct ConstWorld
 	{
-		DirectX::XMFLOAT4X4 world[256];	//world matrix array for different material
+		DirectX::XMFLOAT4X4 world;	//world matrix array for different material
+		int meshId[4];
 	};
 
 	struct OBJ_ATTRIBUTES
@@ -30,13 +31,18 @@ public:
 		unsigned int illum; // illumination model
 	};
 
-	H2B::Parser parsed;
+	H2B::Parser parser;
+
 	Microsoft::WRL::ComPtr<ID3D11Buffer>		vertexBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Buffer>		indexBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Buffer>		constantBuffer;
 
-	void ParseFile(const char* filename, std::vector< DirectX::XMFLOAT4X4> matrixVect); //parse game level file
-	void SetData(Model& model, GW::GRAPHICS::GDirectX11Surface d3d);
+	//void Model::ParseFile(const char* filename, std::vector< DirectX::XMFLOAT4X4> matrixVect, std::vector<H2B::Parser> parserVec, std::vector<Model> modelsVec); //parse game level file
+	void SetData(Model& model, GW::GRAPHICS::GDirectX11Surface d3d, ID3D11DeviceContext* con, ID3D11RenderTargetView* view, ID3D11DepthStencilView* depth);
+	void CreateBuffer(ID3D11Device* creator, GW::GRAPHICS::GDirectX11Surface _d3d);
+	void LoadModel();
+	Model();
+	~Model();
 	
 };
 
