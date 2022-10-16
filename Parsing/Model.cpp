@@ -90,13 +90,14 @@ void Model::SetData(Model& model, GW::GRAPHICS::GDirectX11Surface d3d, ID3D11Dev
 	// setup the pipeline
 	ID3D11RenderTargetView* const views[] = { view };
 	con->OMSetRenderTargets(ARRAYSIZE(views), views, depth);
-	const UINT strides[] = { sizeof(Model::ConstWorld) };
+	const UINT strides[] = { sizeof(H2B::VERTEX) };
 	const UINT offsets[] = { 0 };
 	ID3D11Buffer* const buffs[] = { model.vertexBuffer.Get()};
 	con->IASetVertexBuffers(0, ARRAYSIZE(buffs), buffs, strides, offsets);
 	con->IASetIndexBuffer(model.indexBuffer.Get(), DXGI_FORMAT::DXGI_FORMAT_R32_UINT, 0);
 	con->VSSetConstantBuffers(0, 1, model.constantBuffer.GetAddressOf());
 	con->PSSetConstantBuffers(0, 1, model.constantBuffer.GetAddressOf());
+	con->UpdateSubresource(model.constantBuffer.Get(), 0, nullptr, &model.modelWoldStructs, 0, 0);
 }
 
 

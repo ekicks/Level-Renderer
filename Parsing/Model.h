@@ -14,24 +14,11 @@ public:
 	struct ConstWorld
 	{
 		DirectX::XMFLOAT4X4 world;	//world matrix array for different material
-		int meshId[4];
-	};
-
-	struct OBJ_ATTRIBUTES
-	{
-		float Kd[3]; // diffuse reflectivity
-		float d; // dissolve (transparency) 
-		float Ks[3]; // specular reflectivity
-		float Ns; // specular exponent
-		float Ka[3]; // ambient reflectivity
-		float sharpness; // local reflection map sharpness
-		float Tf[3]; // transmission filter
-		float Ni; // optical density (index of refraction)
-		float Ke[3]; // emissive reflectivity
-		unsigned int illum; // illumination model
 	};
 
 	H2B::Parser parser;
+	Model::ConstWorld modelWoldStructs;
+	H2B::ATTRIBUTES attributes;
 
 	Microsoft::WRL::ComPtr<ID3D11Buffer>		vertexBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Buffer>		indexBuffer;

@@ -14,24 +14,22 @@ struct OBJ_ATTRIBUTES
 
 cbuffer ConstWorld : register(b0)
 {
-    float4x4 world[256];
-    float meshId;
+    float4x4 world[1];
 };
 cbuffer ConstBuff : register(b1)
 {
-    matrix view;
-    matrix projection;
+    float4x4 view;
+    float4x4 projection;
 };
-struct ColorBuff
+cbuffer ColorBuff : register(b2)
 {
     float4 lightDir;
     float4 lightColor;
-    OBJ_ATTRIBUTES outputColor[10];
+    OBJ_ATTRIBUTES outputColor;
 	
     float4 camPos;
     float4 ambient;
 };
-StructuredBuffer<ColorBuff> colorbuff : register(t0);
 
 struct pixel
 {
@@ -42,16 +40,17 @@ struct pixel
 
 float4 main(pixel inputPS) : SV_TARGET
 {
-    float3 normal = normalize(inputPS.nrm.xyz);
-    float lightRatio = saturate(dot(-colorbuff[meshId].lightDir.xyz, normal));
+    //float3 normal = normalize(inputPS.nrm.xyz);
+    //float lightRatio = saturate(dot(-colorbuff[0].lightDir.xyz, normal));
 	
-    float4 color = float4(colorbuff[meshId].outputColor[meshId].Kd, 1);
+   float4 color = float4(outputColor.Kd, 1);
 	
-    float3 viewDir = normalize(colorbuff[meshId].camPos.xyz - inputPS.wPos.xyz);
-    float3 halfVec = normalize(reflect(colorbuff[0].lightDir.xyz, normal));
+    //float3 viewDir = normalize(colorbuff[0].camPos.xyz - inputPS.wPos.xyz);
+    //float3 halfVec = normalize(reflect(colorbuff[0].lightDir.xyz, normal));
 
-    float intensity = max(pow(saturate(dot(viewDir, halfVec)), colorbuff[0].outputColor[meshId].Ns), 0);
-    float4 reflectedLight = float4(colorbuff[meshId].outputColor[meshId].Ks, 1) * 1 * intensity;
+    //float intensity = max(pow(saturate(dot(viewDir, halfVec)), colorbuff[0].outputColor[0].Ns), 0);
+    //float4 reflectedLight = float4(colorbuff[0].outputColor[0].Ks, 1) * 1 * intensity;
 	
-    return saturate(lightRatio * colorbuff[meshId].lightColor + colorbuff[meshId].ambient) * color + reflectedLight;
+    //return saturate(lightRatio * colorbuff[0].lightColor + colorbuff[0].ambient) * color + reflectedLight;
+    return color;
 }

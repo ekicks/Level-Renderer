@@ -5,18 +5,10 @@
 // Simple Vertex Shader
 // Simple Pixel Shader
 
-struct Vertex
-{
-	float x;
-	float y;
-	float z;
-	float w;
-};
 
 struct ConstantWorldBuffer
 {
 	DirectX::XMFLOAT4X4 world;
-	int meshId;
 };
 
 struct ConstantBuffer
@@ -25,6 +17,15 @@ struct ConstantBuffer
 	DirectX::XMMATRIX projection;
 };
 
+struct ColorBuff
+{
+	float lightDir[4];
+	float lightColor[4];
+	H2B::ATTRIBUTES outputColor;
+
+	float camPos[4];
+	float ambient[4];
+};
 
 std::string ShaderAsString(const char* shaderFilePath) {
 	std::string output;
@@ -50,6 +51,8 @@ class Renderer
 	GW::SYSTEM::GWindow win;
 	GW::GRAPHICS::GDirectX11Surface d3d;
 	// what we need at a minimum to draw a triangle
+	Microsoft::WRL::ComPtr<ID3D11Buffer>		vpConstantBuffer;
+	Microsoft::WRL::ComPtr<ID3D11Buffer>		colorBuffer;
 	Microsoft::WRL::ComPtr<ID3D11VertexShader>	vertexShader;
 	Microsoft::WRL::ComPtr<ID3D11PixelShader>	pixelShader;
 	Microsoft::WRL::ComPtr<ID3D11InputLayout>	vertexFormat;
@@ -71,7 +74,7 @@ public:
 		d3d.GetDevice((void**)&creator);
 		input.Create(_win);
 
-		DirectX::FXMVECTOR eye{ 0.25f, -0.125f, -0.25f };
+		DirectX::FXMVECTOR eye{ 0.0f, 3.0f, -3.0f };
 		DirectX::FXMVECTOR focus{ 0,-0.5,0 };
 		DirectX::FXMVECTOR upDir{ 0,1,0 };
 
@@ -85,6 +88,14 @@ public:
 		{
 			modelVec[i].CreateBuffer(creator, d3d);
 		}
+
+		CD3D11_BUFFER_DESC cDesc(sizeof(ConstantBuffer), D3D11_BIND_CONSTANT_BUFFER);
+		creator->CreateBuffer(&cDesc, nullptr, vpConstantBuffer.GetAddressOf());
+
+		CD3D11_BUFFER_DESC sbDesc(sizeof(ColorBuff), D3D11_BIND_CONSTANT_BUFFER);
+		creator->CreateBuffer(&cDesc, nullptr, colorBuffer.GetAddressOf());
+
+
 		// -------------- Replace surrounded -------------- //
 		//Create Data
 
@@ -123,7 +134,13 @@ public:
 		// Create Input Layout
 		D3D11_INPUT_ELEMENT_DESC format[] = {
 			{
-				"POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0,
+				"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,
+				D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},{
+
+				"TEXTCOORD", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,
+				D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},{
+
+				"COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,
 				D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0
 			}
 		};
@@ -135,11 +152,8 @@ public:
 	}
 	void Render()
 	{
-		DirectX::XMMATRIX m;
-
-		m = DirectX::XMMatrixIdentity();
-		m = DirectX::XMMatrixMultiply(m, DirectX::XMMatrixRotationX(1.5708f));
-		m = DirectX::XMMatrixMultiply(m, DirectX::XMMatrixTranslation(0.0f, 0.5f, 0.0f));
+		
+#pragma region Keyboard Input
 		float wKey, aKey, sKey, dKey, space, shift;
 		float mouseX, mouseY;
 		input.GetState(G_KEY_W, wKey);
@@ -164,45 +178,47 @@ public:
 			}
 			if (wKey > 0) {
 				viewMatrix = DirectX::XMMatrixInverse(nullptr, viewMatrix);
-				viewMatrix = DirectX::XMMatrixMultiply(DirectX::XMMatrixTranslation(0, 0, 0.005f), viewMatrix);
+				viewMatrix = DirectX::XMMatrixMultiply(DirectX::XMMatrixTranslation(0, 0, 0.010f), viewMatrix);
 				viewMatrix = DirectX::XMMatrixInverse(nullptr, viewMatrix);
 			}
 			if (aKey > 0) {
 				viewMatrix = DirectX::XMMatrixInverse(nullptr, viewMatrix);
-				viewMatrix = DirectX::XMMatrixMultiply(DirectX::XMMatrixTranslation(-0.005f, 0, 0), viewMatrix);
+				viewMatrix = DirectX::XMMatrixMultiply(DirectX::XMMatrixTranslation(-0.010f, 0, 0), viewMatrix);
 				viewMatrix = DirectX::XMMatrixInverse(nullptr, viewMatrix);
 			}
 			if (sKey > 0) {
 				viewMatrix = DirectX::XMMatrixInverse(nullptr, viewMatrix);
-				viewMatrix = DirectX::XMMatrixMultiply(DirectX::XMMatrixTranslation(0, 0, -0.005f), viewMatrix);
+				viewMatrix = DirectX::XMMatrixMultiply(DirectX::XMMatrixTranslation(0, 0, -0.010f), viewMatrix);
 				viewMatrix = DirectX::XMMatrixInverse(nullptr, viewMatrix);
 			}
 			if (dKey > 0) {
 				viewMatrix = DirectX::XMMatrixInverse(nullptr, viewMatrix);
-				viewMatrix = DirectX::XMMatrixMultiply(DirectX::XMMatrixTranslation(0.005f, 0, 0), viewMatrix);
+				viewMatrix = DirectX::XMMatrixMultiply(DirectX::XMMatrixTranslation(0.010f, 0, 0), viewMatrix);
 				viewMatrix = DirectX::XMMatrixInverse(nullptr, viewMatrix);
 			}
 			if (shift > 0) {
 				viewMatrix = DirectX::XMMatrixInverse(nullptr, viewMatrix);
-				viewMatrix = DirectX::XMMatrixMultiply(DirectX::XMMatrixTranslation(0, -0.005f, 0), viewMatrix);
+				viewMatrix = DirectX::XMMatrixMultiply(DirectX::XMMatrixTranslation(0, -0.010f, 0), viewMatrix);
 				viewMatrix = DirectX::XMMatrixInverse(nullptr, viewMatrix);
 			}
 			if (space > 0) {
 				viewMatrix = DirectX::XMMatrixInverse(nullptr, viewMatrix);
-				viewMatrix = DirectX::XMMatrixMultiply(DirectX::XMMatrixTranslation(0, 0.005f, 0), viewMatrix);
+				viewMatrix = DirectX::XMMatrixMultiply(DirectX::XMMatrixTranslation(0, 0.010f, 0), viewMatrix);
 				viewMatrix = DirectX::XMMatrixInverse(nullptr, viewMatrix);
 			}
 			startTime = high_resolution_clock::now();
 		}
 
+#pragma endregion
 
+		int modelNumber = 3;
 		float aRatio;
 		d3d.GetAspectRatio(aRatio);
 
 		DirectX::XMMATRIX perspectiveMatrix = DirectX::XMMatrixPerspectiveFovLH(1.13446f, aRatio, 0.1f, 100.0f);
 
 		ConstantBuffer cbuffer = { viewMatrix , perspectiveMatrix };
-		ConstantWorldBuffer cwbuffer = { matrixVect[5] };
+		//ConstantWorldBuffer cwbuffer = { matrixVect[5] };
 
 		// grab the context & render target
 		ID3D11DeviceContext* con;
@@ -213,57 +229,35 @@ public:
 		d3d.GetRenderTargetView((void**)&view);
 		d3d.GetDepthStencilView((void**)&depth);
 		
-		modelVec[5].SetData(modelVec[5], d3d, con, view, depth);
-		con->UpdateSubresource(modelVec[5].constantBuffer.Get(), 0, nullptr, &cbuffer, 0, 0);
-		con->VSSetConstantBuffers(0,1,modelVec[5].constantBuffer.GetAddressOf());
-		con->PSSetConstantBuffers(0,1,modelVec[5].constantBuffer.GetAddressOf());
-		con->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		con->DrawIndexed(modelVec[5].parser.indexCount, 0, 1);
+		con->VSSetConstantBuffers(1, 1, vpConstantBuffer.GetAddressOf());
+		con->PSSetConstantBuffers(1, 1, vpConstantBuffer.GetAddressOf());
+		con->UpdateSubresource(vpConstantBuffer.Get(), 0, nullptr, &cbuffer, 0, 0);
 
+		con->PSSetConstantBuffers(1, 1, colorBuffer.GetAddressOf());
+		con->UpdateSubresource(colorBuffer.Get(), 0, nullptr, &cbuffer, 0, 0);
 
-		// -------------- Replace surrounded -------------- //
-		/*con->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_LINELIST);
-		con->Draw(104, 0);
+		ColorBuff colorBuff;
 
-		cbuffer.matrixOne = m2;
-		con->UpdateSubresource(constantBuffer.Get(), 0, nullptr, &cbuffer, 0, 0);
-		con->VSSetConstantBuffers(0, 1, constantBuffer.GetAddressOf());
+		for (int j = 1; j < modelVec.size(); j++)
+		{
+			modelNumber = j;
+			modelVec[modelNumber].SetData(modelVec[modelNumber], d3d, con, view, depth);
 
-		con->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_LINELIST);
-		con->Draw(104, 0);
+			con->VSSetShader(vertexShader.Get(), nullptr, 0);
+			con->PSSetShader(pixelShader.Get(), nullptr, 0);
+			con->IASetInputLayout(vertexFormat.Get());
 
-		cbuffer.matrixOne = m3;
-		con->UpdateSubresource(constantBuffer.Get(), 0, nullptr, &cbuffer, 0, 0);
-		con->VSSetConstantBuffers(0, 1, constantBuffer.GetAddressOf());
-
-		con->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_LINELIST);
-		con->Draw(104, 0);
-
-		cbuffer.matrixOne = m4;
-		con->UpdateSubresource(constantBuffer.Get(), 0, nullptr, &cbuffer, 0, 0);
-		con->VSSetConstantBuffers(0, 1, constantBuffer.GetAddressOf());
-
-		con->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_LINELIST);
-		con->Draw(104, 0);
-
-		cbuffer.matrixOne = m5;
-		con->UpdateSubresource(constantBuffer.Get(), 0, nullptr, &cbuffer, 0, 0);
-		con->VSSetConstantBuffers(0, 1, constantBuffer.GetAddressOf());
-
-		con->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_LINELIST);
-		con->Draw(104, 0);
-
-		cbuffer.matrixOne = m6;
-		con->UpdateSubresource(constantBuffer.Get(), 0, nullptr, &cbuffer, 0, 0);
-		con->VSSetConstantBuffers(0, 1, constantBuffer.GetAddressOf());
-
-		con->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_LINELIST);
-		con->Draw(104, 0);*/
-		// -------------- Replace surrounded -------------- //
-
+			con->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+			for (int i = 0; i < modelVec[modelNumber].parser.materialCount; i++)
+			{
+				colorBuff.outputColor = modelVec[modelNumber].parser.materials[i].attrib;
+				con->PSSetConstantBuffers(2, 1, colorBuffer.GetAddressOf());
+				con->UpdateSubresource(colorBuffer.Get(), 0, nullptr, &colorBuff, 0, 0);
+				con->DrawIndexed(modelVec[modelNumber].parser.meshes[i].drawInfo.indexCount, modelVec[modelNumber].parser.meshes[i].drawInfo.indexOffset, 0);
+			}
+		}
+		
 		//DrawModel || Load Level
-
-
 
 		// release temp handles
 		depth->Release();
@@ -278,7 +272,7 @@ public:
 
 };
 
-void ParseFile(const char* filename, std::vector< DirectX::XMFLOAT4X4>& matrixVect, std::vector<Model>& modelsVec) {
+void ParseFile(const char* filename, std::vector< DirectX::XMFLOAT4X4>& _matrixVect, std::vector<Model>& modelsVec) {
 
 	std::ifstream file;
 	DirectX::XMFLOAT4X4 objMatrix;	//matrix that holds values from each amtrix in the text file
@@ -312,7 +306,7 @@ void ParseFile(const char* filename, std::vector< DirectX::XMFLOAT4X4>& matrixVe
 			if (found != std::string::npos) {
 				h2b.resize(h2b.length() - (h2b.length() - found));
 			}
-			h2b = "../Assets/" + h2b;
+			h2b = "../TriangulatedBlenderAssets/" + h2b;
 			bool val;
 			h2b.append(".h2b");
 			Model models;
@@ -343,8 +337,8 @@ void ParseFile(const char* filename, std::vector< DirectX::XMFLOAT4X4>& matrixVe
 						count2++;
 						if (count2 == 4) {
 							count2 = 0;
+						_matrixVect.push_back(objMatrix);
 						}
-						matrixVect.push_back(objMatrix);
 					}
 					valueString = "";
 				}
@@ -353,5 +347,9 @@ void ParseFile(const char* filename, std::vector< DirectX::XMFLOAT4X4>& matrixVe
 
 	}
 	file.close();
+	for (int i = 0; i < _matrixVect.size(); i++)
+	{
+		modelsVec[i].modelWoldStructs.world = _matrixVect[i];
+	}
 }
 
