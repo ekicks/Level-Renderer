@@ -48,6 +48,7 @@ class Renderer
 	Microsoft::WRL::ComPtr<ID3D11VertexShader>	vertexShader;
 	Microsoft::WRL::ComPtr<ID3D11PixelShader>	pixelShader;
 	Microsoft::WRL::ComPtr<ID3D11InputLayout>	vertexFormat;
+	ID3D11Device* creator;
 
 	GW::INPUT::GInput input;
 	DirectX::XMMATRIX viewMatrix;
@@ -56,37 +57,34 @@ class Renderer
 	std::vector<Model> modelVec;
 	std::vector< DirectX::XMFLOAT4X4> matrixVect;
 	const char* filename = "../GameLevel.txt";
+	bool file = true;
+
 public:
 
 	Renderer(GW::SYSTEM::GWindow _win, GW::GRAPHICS::GDirectX11Surface _d3d)
 	{
 		win = _win;
 		d3d = _d3d;
-		ID3D11Device* creator;
+		
 		d3d.GetDevice((void**)&creator);
 		input.Create(_win);
 
-		DirectX::FXMVECTOR eye{ 0.0f, 3.0f, -10.0f };
-		DirectX::FXMVECTOR focus{ 0,-0.5,0 };
+		DirectX::FXMVECTOR eye{ 0.0f, 0.0f, -13.0f };
+		DirectX::FXMVECTOR focus{ 0,0.5,0 };
 		DirectX::FXMVECTOR upDir{ 0,1,0 };
 
 		viewMatrix = DirectX::XMMatrixLookAtLH(eye, focus, upDir);
 
 		// Create Vertex Buffer
-		
-		// -------------- Replace surrounded -------------- //
-		ParseFile(filename, matrixVect,modelVec);
-		for (int i = 0; i < modelVec.size(); i++)
-		{
-			modelVec[i].CreateBuffer(creator, d3d);
-		}
+	
 
 		CD3D11_BUFFER_DESC cDesc(sizeof(ConstantBuffer), D3D11_BIND_CONSTANT_BUFFER);
 		creator->CreateBuffer(&cDesc, nullptr, vpConstantBuffer.GetAddressOf());
 
 		CD3D11_BUFFER_DESC sbDesc(sizeof(ColorBuff), D3D11_BIND_CONSTANT_BUFFER);
 		creator->CreateBuffer(&cDesc, nullptr, colorBuffer.GetAddressOf());
-
+		// -------------- Replace surrounded -------------- //
+		
 
 		// -------------- Replace surrounded -------------- //
 		//Create Data
@@ -144,6 +142,26 @@ public:
 	}
 	void Render()
 	{
+
+		/*float oneKey, twoKey;
+		input.GetState(G_KEY_1, oneKey);
+		input.GetState(G_KEY_2, twoKey);
+		if (oneKey > 0) {
+			filename = "../GameLevel.txt";
+			file = true;
+		}
+		if (twoKey > 0) {
+			filename = "../GameLevelTwo.txt";
+			file = true;
+		}*/
+		if (file == true) {
+			ParseFile(filename, matrixVect, modelVec);
+			for (int i = 0; i < modelVec.size(); i++)
+			{
+				modelVec[i].CreateBuffer(creator, d3d);
+			}
+		}
+		file = false;
 		
 #pragma region Keyboard Input
 		float wKey, aKey, sKey, dKey, space, shift;
@@ -157,6 +175,7 @@ public:
 		GW::GReturn result = input.GetMouseDelta(mouseX, mouseY);
 		high_resolution_clock::time_point currTime = high_resolution_clock::now();
 		duration<double> timespan = duration_cast<duration<double>>(currTime - startTime);
+		float movementSpeed = 0.30f;
 		if (timespan.count() > 0.0167) {
 			if (result == GW::GReturn::SUCCESS) {
 				viewMatrix = DirectX::XMMatrixInverse(nullptr, viewMatrix);
@@ -168,34 +187,27 @@ public:
 				mouseX = 0;
 				mouseY = 0;
 			}
-			if (wKey > 0) {
+			if (wKey > 0 || aKey > 0 || sKey > 0 || dKey > 0 || shift > 0 || space > 0)
+			{
 				viewMatrix = DirectX::XMMatrixInverse(nullptr, viewMatrix);
-				viewMatrix = DirectX::XMMatrixMultiply(DirectX::XMMatrixTranslation(0, 0, 0.010f), viewMatrix);
-				viewMatrix = DirectX::XMMatrixInverse(nullptr, viewMatrix);
-			}
-			if (aKey > 0) {
-				viewMatrix = DirectX::XMMatrixInverse(nullptr, viewMatrix);
-				viewMatrix = DirectX::XMMatrixMultiply(DirectX::XMMatrixTranslation(-0.010f, 0, 0), viewMatrix);
-				viewMatrix = DirectX::XMMatrixInverse(nullptr, viewMatrix);
-			}
-			if (sKey > 0) {
-				viewMatrix = DirectX::XMMatrixInverse(nullptr, viewMatrix);
-				viewMatrix = DirectX::XMMatrixMultiply(DirectX::XMMatrixTranslation(0, 0, -0.010f), viewMatrix);
-				viewMatrix = DirectX::XMMatrixInverse(nullptr, viewMatrix);
-			}
-			if (dKey > 0) {
-				viewMatrix = DirectX::XMMatrixInverse(nullptr, viewMatrix);
-				viewMatrix = DirectX::XMMatrixMultiply(DirectX::XMMatrixTranslation(0.010f, 0, 0), viewMatrix);
-				viewMatrix = DirectX::XMMatrixInverse(nullptr, viewMatrix);
-			}
-			if (shift > 0) {
-				viewMatrix = DirectX::XMMatrixInverse(nullptr, viewMatrix);
-				viewMatrix = DirectX::XMMatrixMultiply(DirectX::XMMatrixTranslation(0, -0.010f, 0), viewMatrix);
-				viewMatrix = DirectX::XMMatrixInverse(nullptr, viewMatrix);
-			}
-			if (space > 0) {
-				viewMatrix = DirectX::XMMatrixInverse(nullptr, viewMatrix);
-				viewMatrix = DirectX::XMMatrixMultiply(DirectX::XMMatrixTranslation(0, 0.010f, 0), viewMatrix);
+				if (wKey > 0) {
+					viewMatrix = DirectX::XMMatrixMultiply(DirectX::XMMatrixTranslation(0, 0, movementSpeed), viewMatrix);
+				}
+				if (aKey > 0) {
+					viewMatrix = DirectX::XMMatrixMultiply(DirectX::XMMatrixTranslation(-movementSpeed, 0, 0), viewMatrix);
+				}
+				if (sKey > 0) {
+					viewMatrix = DirectX::XMMatrixMultiply(DirectX::XMMatrixTranslation(0, 0, -movementSpeed), viewMatrix);
+				}
+				if (dKey > 0) {
+					viewMatrix = DirectX::XMMatrixMultiply(DirectX::XMMatrixTranslation(movementSpeed, 0, 0), viewMatrix);
+				}
+				if (shift > 0) {
+					viewMatrix = DirectX::XMMatrixMultiply(DirectX::XMMatrixTranslation(0, -movementSpeed, 0), viewMatrix);
+				}
+				if (space > 0) {
+					viewMatrix = DirectX::XMMatrixMultiply(DirectX::XMMatrixTranslation(0, movementSpeed, 0), viewMatrix);
+				}
 				viewMatrix = DirectX::XMMatrixInverse(nullptr, viewMatrix);
 			}
 			startTime = high_resolution_clock::now();
@@ -203,14 +215,18 @@ public:
 
 #pragma endregion
 
-		int modelNumber = 3;
+		float lightDir[4] = {-1,-1,2,0};
+		float lightColor[4] = {0.9f, 0.9f, 1.0f, 1.0f};
+		float cameraWorldPos[4] = { 0.0f, 0.0f, -13.0f, 1.0};
+		float ambientLight[4] = {0.25, 0.25, 0.35, 1};
+
+
 		float aRatio;
 		d3d.GetAspectRatio(aRatio);
 
 		DirectX::XMMATRIX perspectiveMatrix = DirectX::XMMatrixPerspectiveFovLH(1.13446f, aRatio, 0.1f, 100.0f);
 
 		ConstantBuffer cbuffer = { viewMatrix , perspectiveMatrix };
-		//ConstantWorldBuffer cwbuffer = { matrixVect[5] };
 
 		// grab the context & render target
 		ID3D11DeviceContext* con;
@@ -232,22 +248,15 @@ public:
 		con->PSSetShader(pixelShader.Get(), nullptr, 0);
 		con->IASetInputLayout(vertexFormat.Get());
 
-		ColorBuff colorBuff = {0};
-
-		/*for (int j = 0; j < modelVec.size(); j++)
+		ColorBuff colorBuff = { 0 };
+		for (size_t i = 0; i < 4; i++)
 		{
-			modelNumber = j;
-			modelVec[modelNumber].SetData(modelVec[modelNumber], d3d, con, view, depth);
+			colorBuff.lightDir[i] = lightDir[i];
+			colorBuff.lightColor[i] = lightColor[i];
+			colorBuff.camPos[i] = cameraWorldPos[i];
+			colorBuff.ambient[i] = ambientLight[i];
 
-			con->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-			for (int i = 0; i < modelVec[modelNumber].parser.materialCount; i++)
-			{
-				colorBuff.outputColor = modelVec[modelNumber].parser.materials[i].attrib;
-				con->PSSetConstantBuffers(2, 1, colorBuffer.GetAddressOf());
-				con->UpdateSubresource(colorBuffer.Get(), 0, nullptr, &colorBuff, 0, 0);
-				con->DrawIndexed(modelVec[modelNumber].parser.meshes[i].drawInfo.indexCount, modelVec[modelNumber].parser.meshes[i].drawInfo.indexOffset, 0);
-			}
-		}*/
+		}
 
 		for (int i = 0; i < modelVec.size(); i++)
 		{
@@ -296,10 +305,10 @@ void ParseFile(const char* filename, std::vector< DirectX::XMFLOAT4X4>& _matrixV
 
 		if (std::strcmp(output.c_str(), "MESH") == 0 || std::strcmp(output.c_str(), "LIGHT") == 0 || std::strcmp(output.c_str(), "CAMERA") == 0) {
 
-			std::cout << output << std::endl; //prints the name of the object 
+			//std::cout << output << std::endl; //prints the name of the object 
 
 			std::getline(file, h2b, '\n');
-			std::cout << h2b << std::endl;
+			//std::cout << h2b << std::endl;
 			size_t found = h2b.find_last_of('.', h2b.size());
 			if (found != std::string::npos) {
 				h2b.resize(h2b.length() - (h2b.length() - found));
@@ -312,9 +321,9 @@ void ParseFile(const char* filename, std::vector< DirectX::XMFLOAT4X4>& _matrixV
 			modelsVec.push_back(models);
 
 			std::getline(file, matrix, '(');
-			std::cout << matrix << "(";
+			//std::cout << matrix << "(";
 			std::getline(file, matrix, '>');
-			std::cout << matrix << ">" << std::endl;
+			//std::cout << matrix << ">" << std::endl;
 			for (int i = 0; i < matrix.length(); i++)
 			{
 				character = matrix[i];

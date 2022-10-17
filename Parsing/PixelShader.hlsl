@@ -40,17 +40,17 @@ struct pixel
 
 float4 main(pixel inputPS) : SV_TARGET
 {
-    //float3 normal = normalize(inputPS.nrm.xyz);
-    //float lightRatio = saturate(dot(-colorbuff[0].lightDir.xyz, normal));
+    float3 normal = normalize(inputPS.nrm.xyz);
+    float lightRatio = saturate(dot(-lightDir.xyz, normal));
 	
    float4 color = float4(outputColor.Kd, 1);
 	
-    //float3 viewDir = normalize(colorbuff[0].camPos.xyz - inputPS.wPos.xyz);
-    //float3 halfVec = normalize(reflect(colorbuff[0].lightDir.xyz, normal));
+    float3 viewDir = normalize(camPos.xyz - inputPS.wPos.xyz);
+    float3 halfVec = normalize(reflect(lightDir.xyz, normal));
 
-    //float intensity = max(pow(saturate(dot(viewDir, halfVec)), colorbuff[0].outputColor[0].Ns), 0);
-    //float4 reflectedLight = float4(colorbuff[0].outputColor[0].Ks, 1) * 1 * intensity;
+    float intensity = max(pow(saturate(dot(viewDir, halfVec)), outputColor.Ns), 0);
+    float4 reflectedLight = float4(outputColor.Ks, 1) * 1 * intensity;
 	
-    //return saturate(lightRatio * colorbuff[0].lightColor + colorbuff[0].ambient) * color + reflectedLight;
-    return color;
+    return saturate(lightRatio * lightColor + ambient) * color + reflectedLight;
+    //return color;
 }
