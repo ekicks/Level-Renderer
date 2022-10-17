@@ -17,15 +17,7 @@ struct ConstantBuffer
 	DirectX::XMMATRIX projection;
 };
 
-struct ColorBuff
-{
-	float lightDir[4];
-	float lightColor[4];
-	H2B::ATTRIBUTES outputColor;
 
-	float camPos[4];
-	float ambient[4];
-};
 
 std::string ShaderAsString(const char* shaderFilePath) {
 	std::string output;
@@ -74,7 +66,7 @@ public:
 		d3d.GetDevice((void**)&creator);
 		input.Create(_win);
 
-		DirectX::FXMVECTOR eye{ 0.0f, 3.0f, -3.0f };
+		DirectX::FXMVECTOR eye{ 0.0f, 3.0f, -10.0f };
 		DirectX::FXMVECTOR focus{ 0,-0.5,0 };
 		DirectX::FXMVECTOR upDir{ 0,1,0 };
 
@@ -236,16 +228,16 @@ public:
 		con->PSSetConstantBuffers(1, 1, colorBuffer.GetAddressOf());
 		con->UpdateSubresource(colorBuffer.Get(), 0, nullptr, &cbuffer, 0, 0);
 
-		ColorBuff colorBuff;
+		con->VSSetShader(vertexShader.Get(), nullptr, 0);
+		con->PSSetShader(pixelShader.Get(), nullptr, 0);
+		con->IASetInputLayout(vertexFormat.Get());
 
-		for (int j = 1; j < modelVec.size(); j++)
+		ColorBuff colorBuff = {0};
+
+		/*for (int j = 0; j < modelVec.size(); j++)
 		{
 			modelNumber = j;
 			modelVec[modelNumber].SetData(modelVec[modelNumber], d3d, con, view, depth);
-
-			con->VSSetShader(vertexShader.Get(), nullptr, 0);
-			con->PSSetShader(pixelShader.Get(), nullptr, 0);
-			con->IASetInputLayout(vertexFormat.Get());
 
 			con->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 			for (int i = 0; i < modelVec[modelNumber].parser.materialCount; i++)
@@ -255,7 +247,13 @@ public:
 				con->UpdateSubresource(colorBuffer.Get(), 0, nullptr, &colorBuff, 0, 0);
 				con->DrawIndexed(modelVec[modelNumber].parser.meshes[i].drawInfo.indexCount, modelVec[modelNumber].parser.meshes[i].drawInfo.indexOffset, 0);
 			}
+		}*/
+
+		for (int i = 0; i < modelVec.size(); i++)
+		{
+			modelVec[i].LoadModel(&modelVec[i], &d3d, con, view, depth, colorBuffer, &colorBuff);
 		}
+
 		
 		//DrawModel || Load Level
 

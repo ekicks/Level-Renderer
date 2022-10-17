@@ -40,15 +40,8 @@ pixel main(vert inputVertex)
     pixel pixelOutput = (pixel) 0;
     pixelOutput.nrm = mul(world[0], float4(inputVertex.nrm, 0));
     //pixelOutput.pos = mul(view, float4(inputVertex.pos, 1));
-    //matrix identity =
-    //{
-    //    1, 0, 0, 0,
-    //    0, 1, 0, 0,
-    //    0, 0, 1, 0,
-    //    0, 0, 0, 1
-    //};
+  
     pixelOutput.pos = mul(world[0], float4(inputVertex.pos, 1));
-    //pixelOutput.pos = mul(identity, float4(inputVertex.pos, 1));
     pixelOutput.wPos = pixelOutput.pos;
     pixelOutput.pos = mul(view, pixelOutput.pos);
     pixelOutput.pos = mul(projection, pixelOutput.pos);
