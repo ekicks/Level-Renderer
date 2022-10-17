@@ -143,17 +143,21 @@ public:
 	void Render()
 	{
 
-		/*float oneKey, twoKey;
+		float oneKey, twoKey;
 		input.GetState(G_KEY_1, oneKey);
 		input.GetState(G_KEY_2, twoKey);
 		if (oneKey > 0) {
+			matrixVect.clear();
+			modelVec.clear();
 			filename = "../GameLevel.txt";
 			file = true;
 		}
 		if (twoKey > 0) {
+			matrixVect.clear();
+			modelVec.clear();
 			filename = "../GameLevelTwo.txt";
 			file = true;
-		}*/
+		}
 		if (file == true) {
 			ParseFile(filename, matrixVect, modelVec);
 			for (int i = 0; i < modelVec.size(); i++)
