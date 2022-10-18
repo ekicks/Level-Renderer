@@ -52,5 +52,4 @@ float4 main(pixel inputPS) : SV_TARGET
     float4 reflectedLight = float4(outputColor.Ks, 1) * 1 * intensity;
 	
     return saturate(lightRatio * lightColor + ambient) * color + reflectedLight;
-    //return color;
 }
