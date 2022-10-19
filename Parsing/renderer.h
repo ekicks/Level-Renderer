@@ -54,12 +54,18 @@ class Renderer
 
 	GW::INPUT::GInput input;
 	DirectX::XMMATRIX viewMatrix;
+	DirectX::XMMATRIX perspectiveMatrix;
+	float aRatio;
+	unsigned int winWidth, winHeight;
+	bool oneTrue = false, twoTrue = true;
 	high_resolution_clock::time_point startTime = high_resolution_clock::now();
 
 	std::vector<Model> modelVec;
 	std::vector< DirectX::XMFLOAT4X4> matrixVect;
 	const char* filename = "../GameLevel.txt";
 
+	D3D11_VIEWPORT viewin[2];
+	D3D11_VIEWPORT viewout;
 
 public:
 
@@ -71,11 +77,15 @@ public:
 		d3d.GetDevice((void**)&creator);
 		input.Create(_win);
 
+		win.GetWidth(winWidth);
+		win.GetHeight(winHeight);
+		viewout = { 0,0,(float)winWidth,(float)winHeight,0,1};
+		viewin[0] = { 0,0,(float)winWidth,(float)winHeight /2.0f,0,1 };
+		viewin[1] = { 0,(float)winHeight /2.0f,(float)winWidth,(float)winHeight /2.0f,0,1 };
+		d3d.GetAspectRatio(aRatio);
+		perspectiveMatrix = DirectX::XMMatrixPerspectiveFovLH(1.13446f, aRatio, 0.1f, 100.0f);
 		// Create Vertex Buffer
 		ParseFile(filename, matrixVect, modelVec, viewMatrix);
-
-		//if (viewMatrix == DirectX::empty) {
-		//}
 		for (int i = 0; i < modelVec.size(); i++)
 		{
 			modelVec[i].CreateBuffer(creator, d3d);
@@ -252,11 +262,6 @@ public:
 		float cameraWorldPos[4] = { 0.0f, 0.0f, -13.0f, 1.0 };
 		float ambientLight[4] = { 0.25, 0.25, 0.35, 1 };
 
-		float aRatio;
-		d3d.GetAspectRatio(aRatio);
-
-		DirectX::XMMATRIX perspectiveMatrix = DirectX::XMMatrixPerspectiveFovLH(1.13446f, aRatio, 0.1f, 100.0f);
-
 		ConstantBuffer cbuffer = { viewMatrix , perspectiveMatrix };
 
 		// grab the context & render target
@@ -267,6 +272,12 @@ public:
 		d3d.GetImmediateContext((void**)&con);
 		d3d.GetRenderTargetView((void**)&view);
 		d3d.GetDepthStencilView((void**)&depth);
+
+		float oneKey, twoKey;
+		
+		input.GetState(G_KEY_1, oneKey);
+		input.GetState(G_KEY_2, twoKey);
+
 
 		con->VSSetConstantBuffers(1, 1, vpConstantBuffer.GetAddressOf());
 		con->PSSetConstantBuffers(1, 1, vpConstantBuffer.GetAddressOf());
@@ -289,9 +300,37 @@ public:
 
 		}
 
-		for (int i = 0; i < modelVec.size(); i++)
-		{
-			modelVec[i].LoadModel(&modelVec[i], &d3d, con, view, depth, colorBuffer, &colorBuff);
+		if (oneKey > 0) {
+			oneTrue = true;
+			twoTrue = false;
+		}
+		if (twoKey > 0) {
+			oneTrue = false;
+			twoTrue = true;
+		}
+		if (oneTrue == true) {
+			con->RSSetViewports(1, &viewin[0]);
+			aRatio = (float)winWidth / ((float)winHeight / 2.0f);
+			perspectiveMatrix = DirectX::XMMatrixPerspectiveFovLH(1.13446f, aRatio, 0.1f, 100.0f);
+			for (int i = 0; i < modelVec.size(); i++)
+			{
+				modelVec[i].LoadModel(&modelVec[i], &d3d, con, view, depth, colorBuffer, &colorBuff);
+			}
+			con->RSSetViewports(1, &viewin[1]);
+			for (int i = 0; i < modelVec.size(); i++)
+			{
+				modelVec[i].LoadModel(&modelVec[i], &d3d, con, view, depth, colorBuffer, &colorBuff);
+			}
+		}
+		if (twoTrue == true) {
+			con->RSSetViewports(1, &viewout);
+			d3d.GetAspectRatio(aRatio);
+			perspectiveMatrix = DirectX::XMMatrixPerspectiveFovLH(1.13446f, aRatio, 0.1f, 100.0f);
+			con->UpdateSubresource(vpConstantBuffer.Get(), 0, nullptr, &cbuffer, 0, 0);
+			for (int i = 0; i < modelVec.size(); i++)
+			{
+				modelVec[i].LoadModel(&modelVec[i], &d3d, con, view, depth, colorBuffer, &colorBuff);
+			}
 		}
 
 		// release temp handles
@@ -316,7 +355,7 @@ void ParseFile(const char* filename, std::vector< DirectX::XMFLOAT4X4>& _matrixV
 	std::string character;			//each character in the matrix string 
 	float value;					//stored value of string after stof
 	int count = 0;					//vector counter
-	int count2 = 0;	
+	int count2 = 0;
 	DirectX::FXMVECTOR eye{ 0.0f, 0.0f, -13.0f };
 	DirectX::FXMVECTOR focus{ 0,0.5,0 };
 	DirectX::FXMVECTOR upDir{ 0,1,0 };
