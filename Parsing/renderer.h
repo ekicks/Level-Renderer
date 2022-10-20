@@ -54,6 +54,7 @@ class Renderer
 
 	GW::INPUT::GInput input;
 	DirectX::XMMATRIX viewMatrix;
+	DirectX::XMMATRIX tempViewMatrix;
 	DirectX::XMMATRIX perspectiveMatrix;
 	float aRatio;
 	unsigned int winWidth, winHeight;
@@ -86,6 +87,8 @@ public:
 		perspectiveMatrix = DirectX::XMMatrixPerspectiveFovLH(1.13446f, aRatio, 0.1f, 100.0f);
 		// Create Vertex Buffer
 		ParseFile(filename, matrixVect, modelVec, viewMatrix);
+		tempViewMatrix = DirectX::XMMatrixMultiply( DirectX::XMMatrixTranslation(0, 0, 5), viewMatrix);
+		tempViewMatrix = DirectX::XMMatrixMultiply(DirectX::XMMatrixRotationX(-1.5708), tempViewMatrix);
 		for (int i = 0; i < modelVec.size(); i++)
 		{
 			modelVec[i].CreateBuffer(creator, d3d);
@@ -263,6 +266,7 @@ public:
 		float ambientLight[4] = { 0.25, 0.25, 0.35, 1 };
 
 		ConstantBuffer cbuffer = { viewMatrix , perspectiveMatrix };
+		ConstantBuffer tempcbuffer = { tempViewMatrix , perspectiveMatrix };
 
 		// grab the context & render target
 		ID3D11DeviceContext* con;
@@ -312,11 +316,13 @@ public:
 			con->RSSetViewports(1, &viewin[0]);
 			aRatio = (float)winWidth / ((float)winHeight / 2.0f);
 			perspectiveMatrix = DirectX::XMMatrixPerspectiveFovLH(1.13446f, aRatio, 0.1f, 100.0f);
+			con->UpdateSubresource(vpConstantBuffer.Get(), 0, nullptr, &tempcbuffer, 0, 0);
 			for (int i = 0; i < modelVec.size(); i++)
 			{
 				modelVec[i].LoadModel(&modelVec[i], &d3d, con, view, depth, colorBuffer, &colorBuff);
 			}
 			con->RSSetViewports(1, &viewin[1]);
+			con->UpdateSubresource(vpConstantBuffer.Get(), 0, nullptr, &cbuffer, 0, 0);
 			for (int i = 0; i < modelVec.size(); i++)
 			{
 				modelVec[i].LoadModel(&modelVec[i], &d3d, con, view, depth, colorBuffer, &colorBuff);
