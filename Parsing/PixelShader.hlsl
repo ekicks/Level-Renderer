@@ -30,9 +30,9 @@ cbuffer ColorBuff : register(b2)
     float4 lightColor;
     float4 lightPos;
     
-    float4 lightDirVec[4];
-    float4 lightColorVec[4];
-    float4 lightPosVec[4];
+    float4 lightDirVec[8];
+    float4 lightColorVec[8];
+    float4 lightPosVec[8];
     OBJ_ATTRIBUTES outputColor;
 	
     float4 camPos;

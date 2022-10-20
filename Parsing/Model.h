@@ -17,9 +17,9 @@ struct ColorBuff
 	LightVector lightColor;
 	LightVector lightPos;
 
-	LightVector lightDirVec[4];
-	LightVector lightColorVec[4];
-	LightVector lightPosVec[4];
+	LightVector lightDirVec[8];
+	LightVector lightColorVec[8];
+	LightVector lightPosVec[8];
 	H2B::ATTRIBUTES outputColor;
 
 	float camPos[4];

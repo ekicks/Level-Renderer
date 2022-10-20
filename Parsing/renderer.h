@@ -63,7 +63,7 @@ class Renderer
 	std::vector<Model> modelVec;
 	std::vector< DirectX::XMFLOAT4X4> matrixVect;
 	std::vector< DirectX::XMFLOAT4X4> lightVect;
-	const char* filename = "../GameLevelLights.txt";
+	const char* filename = "../GameLevel.txt";
 
 	D3D11_VIEWPORT viewin[2];
 	D3D11_VIEWPORT viewout;
@@ -80,14 +80,14 @@ public:
 
 		win.GetWidth(winWidth);
 		win.GetHeight(winHeight);
-		viewout = { 0,0,(float)winWidth,(float)winHeight,0,1};
-		viewin[0] = { 0,0,(float)winWidth,(float)winHeight /2.0f,0,1 };
-		viewin[1] = { 0,(float)winHeight /2.0f,(float)winWidth,(float)winHeight /2.0f,0,1 };
+		viewout = { 0,0,(float)winWidth,(float)winHeight,0,1 };
+		viewin[0] = { 0,0,(float)winWidth,(float)winHeight / 2.0f,0,1 };
+		viewin[1] = { 0,(float)winHeight / 2.0f,(float)winWidth,(float)winHeight / 2.0f,0,1 };
 		d3d.GetAspectRatio(aRatio);
 		perspectiveMatrix = DirectX::XMMatrixPerspectiveFovLH(1.13446f, aRatio, 0.1f, 100.0f);
 		// Create Vertex Buffer
-		ParseFile(filename, matrixVect, modelVec, viewMatrix,lightVect);
-		tempViewMatrix = DirectX::XMMatrixMultiply( DirectX::XMMatrixTranslation(0, 0, 6), viewMatrix);
+		ParseFile(filename, matrixVect, modelVec, viewMatrix, lightVect);
+		tempViewMatrix = DirectX::XMMatrixMultiply(DirectX::XMMatrixTranslation(0, 0, 6), viewMatrix);
 		tempViewMatrix = DirectX::XMMatrixMultiply(DirectX::XMMatrixRotationZ(1.5708), tempViewMatrix);
 		for (int i = 0; i < modelVec.size(); i++)
 		{
@@ -187,7 +187,7 @@ public:
 							std::wstring convert = pszFilePath;
 							std::string temp = std::string(convert.begin(), convert.end());
 							filename = temp.c_str();
-							ParseFile(filename, matrixVect, modelVec, viewMatrix,lightVect);
+							ParseFile(filename, matrixVect, modelVec, viewMatrix, lightVect);
 							for (int i = 0; i < modelVec.size(); i++)
 							{
 								modelVec[i].CreateBuffer(creator, d3d);
@@ -281,12 +281,12 @@ public:
 		d3d.GetDepthStencilView((void**)&depth);
 
 		float oneKey, twoKey;
-		
+
 		input.GetState(G_KEY_1, oneKey);
 		input.GetState(G_KEY_2, twoKey);
 
 
-		
+
 
 		ColorBuff colorBuff;
 		bool lightsLoaded = LoadLights(lightVect, colorBuff);
@@ -294,7 +294,7 @@ public:
 			for (int i = 0; i < 4; i++)
 			{
 				colorBuff.camPos[i] = cameraWorldPos[i];
-				colorBuff.ambient[i] = ambientLight[i];	
+				colorBuff.ambient[i] = ambientLight[i];
 			}
 			colorBuff.lightDir.x = lightDir[0];
 			colorBuff.lightDir.y = lightDir[1];
@@ -507,7 +507,7 @@ void ParseFile(const char* filename, std::vector< DirectX::XMFLOAT4X4>& _matrixV
 				}
 			}
 		}
-		
+
 	}
 	file.close();
 	for (int i = 0; i < _matrixVect.size(); i++)
@@ -523,20 +523,20 @@ bool LoadLights(std::vector< DirectX::XMFLOAT4X4> _lightVect, ColorBuff& colorBu
 	if (_lightVect.size() != 0) {
 		for (int i = 0; i < _lightVect.size(); i++)
 		{
-			for (int j = 0; j < 4; j+=4)
+			for (int j = 0; j < 4; j += 4)
 			{
 				colorBuffer.lightColor.x = _lightVect[i].m[1][j];
-				colorBuffer.lightColor.y = _lightVect[i].m[1][j+1];
-				colorBuffer.lightColor.z = _lightVect[i].m[1][j+2];
-				colorBuffer.lightColor.w = _lightVect[i].m[1][j+3];
+				colorBuffer.lightColor.y = _lightVect[i].m[1][j + 1];
+				colorBuffer.lightColor.z = _lightVect[i].m[1][j + 2];
+				colorBuffer.lightColor.w = _lightVect[i].m[1][j + 3];
 				colorBuffer.lightDir.x = _lightVect[i].m[2][j];
-				colorBuffer.lightDir.y = _lightVect[i].m[2][j+1];
-				colorBuffer.lightDir.z = _lightVect[i].m[2][j+2];
-				colorBuffer.lightDir.w = _lightVect[i].m[2][j+3];
+				colorBuffer.lightDir.y = _lightVect[i].m[2][j + 1];
+				colorBuffer.lightDir.z = _lightVect[i].m[2][j + 2];
+				colorBuffer.lightDir.w = _lightVect[i].m[2][j + 3];
 				colorBuffer.lightPos.x = _lightVect[i].m[3][j];
-				colorBuffer.lightPos.y = _lightVect[i].m[3][j+1];
-				colorBuffer.lightPos.z = _lightVect[i].m[3][j+2];
-				colorBuffer.lightPos.w = _lightVect[i].m[3][j+3];
+				colorBuffer.lightPos.y = _lightVect[i].m[3][j + 1];
+				colorBuffer.lightPos.z = _lightVect[i].m[3][j + 2];
+				colorBuffer.lightPos.w = _lightVect[i].m[3][j + 3];
 			}
 			colorBuffer.lightColorVec[i] = colorBuffer.lightColor;
 			colorBuffer.lightDirVec[i] = colorBuffer.lightDir;
@@ -544,9 +544,9 @@ bool LoadLights(std::vector< DirectX::XMFLOAT4X4> _lightVect, ColorBuff& colorBu
 		}
 		return true;
 	}
-	else {
-		return false;
-	}
-	
+
+	return false;
+
+
 
 }
