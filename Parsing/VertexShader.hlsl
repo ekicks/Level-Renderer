@@ -21,7 +21,6 @@ cbuffer ConstBuff : register(b1)
     matrix view;
     matrix projection;
 };
-
 struct vert
 {
     float3 pos : POSITION;

@@ -7,14 +7,25 @@
 #include <wrl/client.h>
 #include <d3d11.h>
 
+struct LightVector
+{
+	float x, y, z, w;
+};
 struct ColorBuff
 {
-	float lightDir[4];
-	float lightColor[4];
+	LightVector lightDir;
+	LightVector lightColor;
+	LightVector lightPos;
+
+	LightVector lightDirVec[4];
+	LightVector lightColorVec[4];
+	LightVector lightPosVec[4];
 	H2B::ATTRIBUTES outputColor;
 
 	float camPos[4];
 	float ambient[4];
+	int lightCount;
+	int padding[2];
 };
 
 class Model

@@ -19,8 +19,6 @@ struct ConstantBuffer
 	DirectX::XMMATRIX projection;
 };
 
-
-
 std::string ShaderAsString(const char* shaderFilePath) {
 	std::string output;
 	unsigned int stringLength = 0;
@@ -37,7 +35,8 @@ std::string ShaderAsString(const char* shaderFilePath) {
 
 
 using namespace std::chrono;
-void ParseFile(const char* filename, std::vector< DirectX::XMFLOAT4X4>& matrixVect, std::vector<Model>& modelsVec, DirectX::XMMATRIX& viewMatrix);
+void ParseFile(const char* filename, std::vector< DirectX::XMFLOAT4X4>& matrixVect, std::vector<Model>& modelsVec, DirectX::XMMATRIX& viewMatrix, std::vector< DirectX::XMFLOAT4X4>& _lightVect);
+bool LoadLights(std::vector< DirectX::XMFLOAT4X4> _lightVect, ColorBuff& colorBuffer);
 // Creation, Rendering & Cleanup
 class Renderer
 {
@@ -63,7 +62,8 @@ class Renderer
 
 	std::vector<Model> modelVec;
 	std::vector< DirectX::XMFLOAT4X4> matrixVect;
-	const char* filename = "../GameLevel.txt";
+	std::vector< DirectX::XMFLOAT4X4> lightVect;
+	const char* filename = "../GameLevelLights.txt";
 
 	D3D11_VIEWPORT viewin[2];
 	D3D11_VIEWPORT viewout;
@@ -86,9 +86,9 @@ public:
 		d3d.GetAspectRatio(aRatio);
 		perspectiveMatrix = DirectX::XMMatrixPerspectiveFovLH(1.13446f, aRatio, 0.1f, 100.0f);
 		// Create Vertex Buffer
-		ParseFile(filename, matrixVect, modelVec, viewMatrix);
-		tempViewMatrix = DirectX::XMMatrixMultiply( DirectX::XMMatrixTranslation(0, 0, 5), viewMatrix);
-		tempViewMatrix = DirectX::XMMatrixMultiply(DirectX::XMMatrixRotationX(-1.5708), tempViewMatrix);
+		ParseFile(filename, matrixVect, modelVec, viewMatrix,lightVect);
+		tempViewMatrix = DirectX::XMMatrixMultiply( DirectX::XMMatrixTranslation(0, 0, 6), viewMatrix);
+		tempViewMatrix = DirectX::XMMatrixMultiply(DirectX::XMMatrixRotationZ(1.5708), tempViewMatrix);
 		for (int i = 0; i < modelVec.size(); i++)
 		{
 			modelVec[i].CreateBuffer(creator, d3d);
@@ -97,8 +97,10 @@ public:
 		CD3D11_BUFFER_DESC cDesc(sizeof(ConstantBuffer), D3D11_BIND_CONSTANT_BUFFER);
 		creator->CreateBuffer(&cDesc, nullptr, vpConstantBuffer.GetAddressOf());
 
-		CD3D11_BUFFER_DESC sbDesc(sizeof(ColorBuff), D3D11_BIND_CONSTANT_BUFFER);
-		creator->CreateBuffer(&cDesc, nullptr, colorBuffer.GetAddressOf());
+		size_t size = sizeof(ColorBuff);
+
+		CD3D11_BUFFER_DESC cbDesc(sizeof(ColorBuff), D3D11_BIND_CONSTANT_BUFFER);
+		creator->CreateBuffer(&cbDesc, nullptr, colorBuffer.GetAddressOf());
 
 		// Create Vertex Shader
 		UINT compilerFlags = D3DCOMPILE_ENABLE_STRICTNESS;
@@ -181,10 +183,11 @@ public:
 							hr = pItem->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath);
 							matrixVect.clear();
 							modelVec.clear();
+							lightVect.clear();
 							std::wstring convert = pszFilePath;
 							std::string temp = std::string(convert.begin(), convert.end());
 							filename = temp.c_str();
-							ParseFile(filename, matrixVect, modelVec, viewMatrix);
+							ParseFile(filename, matrixVect, modelVec, viewMatrix,lightVect);
 							for (int i = 0; i < modelVec.size(); i++)
 							{
 								modelVec[i].CreateBuffer(creator, d3d);
@@ -283,26 +286,37 @@ public:
 		input.GetState(G_KEY_2, twoKey);
 
 
+		
+
+		ColorBuff colorBuff;
+		bool lightsLoaded = LoadLights(lightVect, colorBuff);
+		if (lightsLoaded == false) {
+			for (int i = 0; i < 4; i++)
+			{
+				colorBuff.camPos[i] = cameraWorldPos[i];
+				colorBuff.ambient[i] = ambientLight[i];	
+			}
+			colorBuff.lightDir.x = lightDir[0];
+			colorBuff.lightDir.y = lightDir[1];
+			colorBuff.lightDir.z = lightDir[2];
+			colorBuff.lightDir.w = lightDir[3];
+			colorBuff.lightColor.x = lightColor[0];
+			colorBuff.lightColor.y = lightColor[1];
+			colorBuff.lightColor.z = lightColor[2];
+			colorBuff.lightColor.w = lightColor[3];
+			colorBuff.lightPos = { 0,0,0,0 };
+		}
+
 		con->VSSetConstantBuffers(1, 1, vpConstantBuffer.GetAddressOf());
 		con->PSSetConstantBuffers(1, 1, vpConstantBuffer.GetAddressOf());
 		con->UpdateSubresource(vpConstantBuffer.Get(), 0, nullptr, &cbuffer, 0, 0);
 
-		con->PSSetConstantBuffers(1, 1, colorBuffer.GetAddressOf());
-		con->UpdateSubresource(colorBuffer.Get(), 0, nullptr, &cbuffer, 0, 0);
+		//con->PSSetConstantBuffers(2, 1, colorBuffer.GetAddressOf());
+		con->UpdateSubresource(colorBuffer.Get(), 0, nullptr, &colorBuff, 0, 0);
 
 		con->VSSetShader(vertexShader.Get(), nullptr, 0);
 		con->PSSetShader(pixelShader.Get(), nullptr, 0);
 		con->IASetInputLayout(vertexFormat.Get());
-
-		ColorBuff colorBuff = { 0 };
-		for (int i = 0; i < 4; i++)
-		{
-			colorBuff.lightDir[i] = lightDir[i];
-			colorBuff.lightColor[i] = lightColor[i];
-			colorBuff.camPos[i] = cameraWorldPos[i];
-			colorBuff.ambient[i] = ambientLight[i];
-
-		}
 
 		if (oneKey > 0) {
 			oneTrue = true;
@@ -352,7 +366,8 @@ public:
 
 };
 
-void ParseFile(const char* filename, std::vector< DirectX::XMFLOAT4X4>& _matrixVect, std::vector<Model>& modelsVec, DirectX::XMMATRIX& _view) {
+void ParseFile(const char* filename, std::vector< DirectX::XMFLOAT4X4>& _matrixVect, std::vector<Model>& modelsVec, DirectX::XMMATRIX& _view, std::vector< DirectX::XMFLOAT4X4>& _lightVect)
+{
 
 	std::ifstream file;
 	DirectX::XMFLOAT4X4 objMatrix;	//matrix that holds values from each amtrix in the text file
@@ -462,12 +477,76 @@ void ParseFile(const char* filename, std::vector< DirectX::XMFLOAT4X4>& _matrixV
 		}
 		else if (std::strcmp(output.c_str(), "LIGHT") == 0)
 		{
+			std::getline(file, h2b, '\n');
+			std::getline(file, matrix, '(');
+			std::getline(file, matrix, '>');
+			for (int i = 0; i < matrix.length(); i++)
+			{
+				character = matrix[i];
+				if ((character[0] >= 48 && character[0] <= 57 || character[0] == 46 || character[0] == 45)) {
+					valueString.append(character);
+				}
+				if (matrix[i] == ',' || matrix[i] == ')') {
 
+					value = std::stof(valueString);
+					objVect[count] = value;
+					count++;
+					if (count == 4) {
+						count = 0;
+						objMatrix.m[count2][0] = objVect[0];
+						objMatrix.m[count2][1] = objVect[1];
+						objMatrix.m[count2][2] = objVect[2];
+						objMatrix.m[count2][3] = objVect[3];
+						count2++;
+						if (count2 == 4) {
+							_lightVect.push_back(objMatrix);
+							count2 = 0;
+						}
+					}
+					valueString = "";
+				}
+			}
 		}
+		
 	}
 	file.close();
 	for (int i = 0; i < _matrixVect.size(); i++)
 	{
 		modelsVec[i].modelWoldStructs.world = _matrixVect[i];
 	}
+}
+
+
+bool LoadLights(std::vector< DirectX::XMFLOAT4X4> _lightVect, ColorBuff& colorBuffer) {
+
+	colorBuffer.lightCount = _lightVect.size();
+	if (_lightVect.size() != 0) {
+		for (int i = 0; i < _lightVect.size(); i++)
+		{
+			for (int j = 0; j < 4; j+=4)
+			{
+				colorBuffer.lightColor.x = _lightVect[i].m[1][j];
+				colorBuffer.lightColor.y = _lightVect[i].m[1][j+1];
+				colorBuffer.lightColor.z = _lightVect[i].m[1][j+2];
+				colorBuffer.lightColor.w = _lightVect[i].m[1][j+3];
+				colorBuffer.lightDir.x = _lightVect[i].m[2][j];
+				colorBuffer.lightDir.y = _lightVect[i].m[2][j+1];
+				colorBuffer.lightDir.z = _lightVect[i].m[2][j+2];
+				colorBuffer.lightDir.w = _lightVect[i].m[2][j+3];
+				colorBuffer.lightPos.x = _lightVect[i].m[3][j];
+				colorBuffer.lightPos.y = _lightVect[i].m[3][j+1];
+				colorBuffer.lightPos.z = _lightVect[i].m[3][j+2];
+				colorBuffer.lightPos.w = _lightVect[i].m[3][j+3];
+			}
+			colorBuffer.lightColorVec[i] = colorBuffer.lightColor;
+			colorBuffer.lightDirVec[i] = colorBuffer.lightDir;
+			colorBuffer.lightPosVec[i] = colorBuffer.lightPos;
+		}
+		return true;
+	}
+	else {
+		return false;
+	}
+	
+
 }
